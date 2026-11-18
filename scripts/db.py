@@ -174,3 +174,17 @@ async def reset_guild(db: aiosqlite.Connection, guild_id: int) -> None:
     await db.execute("DELETE FROM guild_stats WHERE guild_id = ?", (guild_id,))
     await db.execute("DELETE FROM user_stats WHERE guild_id = ?", (guild_id,))
     await db.commit()
+
+
+__all__ = [
+    "GuildStats",
+    "close_db",
+    "get_guild_stats",
+    "get_tracked",
+    "load_tracked",
+    "open_db",
+    "record",
+    "reset_guild",
+    "set_tracked",
+    "top",
+]

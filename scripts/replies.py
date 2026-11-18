@@ -249,4 +249,3 @@ def _big_answer(f: Factorial, rng: random.Random) -> str:
 
 
 __all__ = ["Answer", "compose", "refuse", "refuse_negative", "too_many"]
-    
