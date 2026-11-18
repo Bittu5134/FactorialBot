@@ -99,3 +99,61 @@ async def facthelp_command(interaction: discord.Interaction) -> None:
         ephemeral=True,
         allowed_mentions=discord.AllowedMentions.none(),
     )
+
+
+@bot.event
+async def setup_hook():
+    utils.db_conn = await db.open_db(config.DB_PATH)
+    utils.tracked = await db.load_tracked(utils.db_conn)
+
+    if config.GUILD_ID:
+        guild = discord.Object(id=config.GUILD_ID)
+        tree.copy_global_to(guild=guild)
+        synced = await tree.sync(guild=guild)
+    else:
+        synced = await tree.sync()
+    log.info("Synced %d slash command(s).", len(synced))
+
+
+@bot.event
+async def on_ready():
+    log.info("Logged in as %s in %d guild(s)", bot.user, len(bot.guilds))
+
+
+async def _post_log(content: str) -> None:
+    """Send one line to LOG_WEBHOOK_URL when it is configured."""
+    if not config.LOG_WEBHOOK_URL:
+        return
+    try:
+        async with aiohttp.ClientSession() as session:
+            webhook = discord.Webhook.from_url(config.LOG_WEBHOOK_URL, session=session)
+            await webhook.send(
+                content=content,
+                username="FactorialBot Logs",
+                allowed_mentions=discord.AllowedMentions.none(),
+            )
+    except Exception:
+        log.warning("Could not post guild log", exc_info=True)
+
+
+@bot.event
+async def on_guild_join(guild: discord.Guild) -> None:
+    log.info(
+        "Joined guild %s (%s) with %s members",
+        guild.name,
+        guild.id,
+        guild.member_count,
+    )
+    await _post_log(
+        f"➕ **Joined** {guild.name} (`{guild.id}`) · "
+        f"{guild.member_count} members · {len(bot.guilds)} guilds total"
+    )
+
+
+@bot.event
+async def on_guild_remove(guild: discord.Guild) -> None:
+    log.info("Removed from guild %s (%s)", guild.name, guild.id)
+    await _post_log(
+        f"➖ **Removed** {guild.name} (`{guild.id}`) · "
+        f"{len(bot.guilds)} guilds total"
+    )
