@@ -143,3 +143,79 @@ class SettingsView(discord.ui.LayoutView):
         await db.set_tracked(utils.db_conn, interaction.guild_id, [])
         utils.tracked.pop(interaction.guild_id, None)
         await interaction.response.edit_message(view=SettingsView(interaction.guild, []))
+
+
+class FactStatsView(discord.ui.LayoutView):
+    def __init__(self, stats: GuildStats, rows: list[tuple[int, int]]) -> None:
+        super().__init__(timeout=None)
+        self.add_item(
+            discord.ui.Container(
+                discord.ui.TextDisplay("### Factorial Stats"),
+                discord.ui.TextDisplay(
+                    f"**{stats.total:,}** factorial"
+                    f"{'s' if stats.total != 1 else ''} caught in this server.\n"
+                    f"Biggest so far: **{stats.biggest}**\n"
+                    f"Latest victim: **{stats.last}**"
+                ),
+                discord.ui.Separator(),
+                discord.ui.TextDisplay("**Most factorial-prone members**"),
+                discord.ui.TextDisplay(_entries_text(rows)),
+                discord.ui.TextDisplay("-# /factorial • /factstats"),
+                accent_colour=COLOUR,
+            )
+        )
+
+
+class FactHelpView(discord.ui.LayoutView):
+    def __init__(self, client_id: int | None = None) -> None:
+        super().__init__(timeout=None)
+
+        items: list[discord.ui.Item] = [
+            discord.ui.TextDisplay("### FactorialBot"),
+            discord.ui.TextDisplay(
+                "I read every message and pounce on anything shaped like "
+                "`10!` or `9!!`.\n"
+                "Small factorials get typed out in full. Big ones get "
+                "**digits**, **trailing zeros** and a scientific shrug, "
+                "because nobody needs 158 digits in chat."
+            ),
+            discord.ui.Separator(),
+            discord.ui.TextDisplay(
+                "**/factorial** — demand a specific factorial\n"
+                "**/factstats** — see how often this server has enabled me\n"
+                "**Rate limit** — one reply every "
+                f"{config.REPLY_COOLDOWN_SECS:g}s per channel"
+            ),
+            discord.ui.TextDisplay("-# Accuracy not guaranteed. Annoyance guaranteed."),
+        ]
+
+        links: list[discord.ui.Button] = []
+        if client_id:
+            links.append(
+                discord.ui.Button(
+                    label="Invite me",
+                    url=utils.invite_url(client_id),
+                    style=discord.ButtonStyle.link,
+                )
+            )
+        links.append(
+            discord.ui.Button(
+                label="Support",
+                url=config.PATREON_URL,
+                emoji="💖",
+                style=discord.ButtonStyle.link,
+            )
+        )
+        items.append(discord.ui.ActionRow(*links))
+
+        self.add_item(discord.ui.Container(*items, accent_colour=COLOUR))
+
+
+__all__ = [
+    "COLOUR",
+    "FactHelpView",
+    "FactReplyView",
+    "FactStatsView",
+    "SettingsView",
+    "support_embed",
+]
