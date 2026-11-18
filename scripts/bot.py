@@ -154,8 +154,7 @@ async def on_guild_join(guild: discord.Guild) -> None:
 async def on_guild_remove(guild: discord.Guild) -> None:
     log.info("Removed from guild %s (%s)", guild.name, guild.id)
     await _post_log(
-        f"➖ **Removed** {guild.name} (`{guild.id}`) · "
-        f"{len(bot.guilds)} guilds total"
+        f"➖ **Removed** {guild.name} (`{guild.id}`) · {len(bot.guilds)} guilds total"
     )
 
 

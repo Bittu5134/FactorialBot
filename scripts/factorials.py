@@ -7,9 +7,7 @@ from dataclasses import dataclass
 from . import config
 
 # Matches "10!", "10 !" and "10!!"; the lookbehind excludes "3.14!" and "x2!".
-FACTORIAL_RE = re.compile(
-    rf"(?<![\w.])(\d{{1,{config.MAX_INPUT_DIGITS}}})\s*(!!|!)"
-)
+FACTORIAL_RE = re.compile(rf"(?<![\w.])(\d{{1,{config.MAX_INPUT_DIGITS}}})\s*(!!|!)")
 
 
 @dataclass(frozen=True)

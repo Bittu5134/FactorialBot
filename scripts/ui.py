@@ -129,7 +129,9 @@ class SettingsView(discord.ui.LayoutView):
         ]
         await db.set_tracked(utils.db_conn, interaction.guild_id, ids)
         utils.tracked[interaction.guild_id] = set(ids)
-        await interaction.response.edit_message(view=SettingsView(interaction.guild, ids))
+        await interaction.response.edit_message(
+            view=SettingsView(interaction.guild, ids)
+        )
 
     async def on_track_all(self, interaction: discord.Interaction) -> None:
         if await _deny_non_admin(interaction):
@@ -142,7 +144,9 @@ class SettingsView(discord.ui.LayoutView):
 
         await db.set_tracked(utils.db_conn, interaction.guild_id, [])
         utils.tracked.pop(interaction.guild_id, None)
-        await interaction.response.edit_message(view=SettingsView(interaction.guild, []))
+        await interaction.response.edit_message(
+            view=SettingsView(interaction.guild, [])
+        )
 
 
 class FactStatsView(discord.ui.LayoutView):

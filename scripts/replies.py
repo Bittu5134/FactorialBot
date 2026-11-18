@@ -164,9 +164,7 @@ def refuse_negative(n: int) -> Answer:
     )
 
 
-def too_many(
-    found: list[Factorial], limit: int = config.MAX_EXTRA_MENTIONS
-) -> str:
+def too_many(found: list[Factorial], limit: int = config.MAX_EXTRA_MENTIONS) -> str:
     """A dismissive footnote for messages stuffed with factorials."""
     labels = ", ".join(f.label for f in found[:limit])
     hidden = len(found) - limit
