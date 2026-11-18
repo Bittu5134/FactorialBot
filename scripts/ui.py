@@ -61,3 +61,85 @@ class FactReplyView(discord.ui.LayoutView):
             items.append(discord.ui.TextDisplay(f"-# {answer.footer}"))
 
         self.add_item(discord.ui.Container(*items, accent_colour=COLOUR))
+
+
+async def _deny_non_admin(interaction: discord.Interaction) -> bool:
+    """Returns True and replies if the user lacks Manage Server."""
+    perms = getattr(interaction.user, "guild_permissions", None)
+    if perms and perms.manage_guild:
+        return False
+    await interaction.response.send_message(
+        "You need **Manage Server** to change this.", ephemeral=True
+    )
+    return True
+
+
+class SettingsView(discord.ui.LayoutView):
+    """Pick up to five channels to track; an empty pick means everything."""
+
+    def __init__(self, guild: discord.Guild, tracked: list[int]) -> None:
+        super().__init__(timeout=None)
+
+        self.select = discord.ui.ChannelSelect(
+            channel_types=[discord.ChannelType.text],
+            placeholder=f"Pick up to {config.MAX_TRACKED_CHANNELS} channels",
+            min_values=0,
+            max_values=config.MAX_TRACKED_CHANNELS,
+            default_values=[
+                discord.Object(id=channel_id)
+                for channel_id in tracked[: config.MAX_TRACKED_CHANNELS]
+                if guild.get_channel(channel_id)
+            ],
+        )
+        self.select.callback = self.on_channels
+
+        track_all = discord.ui.Button(
+            label="Track everything",
+            style=discord.ButtonStyle.secondary,
+            emoji="🌐",
+        )
+        track_all.callback = self.on_track_all
+
+        self.add_item(
+            discord.ui.Container(
+                discord.ui.TextDisplay("## FactorialBot Settings"),
+                discord.ui.TextDisplay(_tracked_text(guild, tracked)),
+                discord.ui.ActionRow(self.select),
+                discord.ui.ActionRow(track_all),
+                discord.ui.TextDisplay(
+                    "-# Maximum "
+                    f"{config.MAX_TRACKED_CHANNELS} channels. "
+                    "Leaving the picker empty tracks every channel."
+                ),
+                accent_colour=COLOUR,
+            )
+        )
+
+    async def on_channels(self, interaction: discord.Interaction) -> None:
+        if await _deny_non_admin(interaction):
+            return
+        if utils.db_conn is None:
+            await interaction.response.send_message(
+                "The settings database is not ready yet.", ephemeral=True
+            )
+            return
+
+        ids = [channel.id for channel in self.select.values][
+            : config.MAX_TRACKED_CHANNELS
+        ]
+        await db.set_tracked(utils.db_conn, interaction.guild_id, ids)
+        utils.tracked[interaction.guild_id] = set(ids)
+        await interaction.response.edit_message(view=SettingsView(interaction.guild, ids))
+
+    async def on_track_all(self, interaction: discord.Interaction) -> None:
+        if await _deny_non_admin(interaction):
+            return
+        if utils.db_conn is None:
+            await interaction.response.send_message(
+                "The settings database is not ready yet.", ephemeral=True
+            )
+            return
+
+        await db.set_tracked(utils.db_conn, interaction.guild_id, [])
+        utils.tracked.pop(interaction.guild_id, None)
+        await interaction.response.edit_message(view=SettingsView(interaction.guild, []))
