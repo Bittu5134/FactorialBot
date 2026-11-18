@@ -129,3 +129,48 @@ async def top(
         (guild_id, limit),
     )
     return [(row["user_id"], row["count"]) for row in rows]
+
+
+async def load_tracked(db: aiosqlite.Connection) -> dict[int, set[int]]:
+    """Every guild's tracked channel ids, for the in-memory cache."""
+    rows = await db.execute_fetchall(
+        "SELECT guild_id, tracked_channels FROM guild_settings"
+    )
+    tracked: dict[int, set[int]] = {}
+    for row in rows:
+        ids = {int(part) for part in row["tracked_channels"].split(",") if part}
+        if ids:
+            tracked[row["guild_id"]] = ids
+    return tracked
+
+
+async def get_tracked(db: aiosqlite.Connection, guild_id: int) -> set[int]:
+    rows = await db.execute_fetchall(
+        "SELECT tracked_channels FROM guild_settings WHERE guild_id = ?", (guild_id,)
+    )
+    if not rows:
+        return set()
+    return {int(part) for part in rows[0]["tracked_channels"].split(",") if part}
+
+
+async def set_tracked(
+    db: aiosqlite.Connection, guild_id: int, channel_ids: list[int]
+) -> None:
+    """An empty list means every channel in the guild."""
+    packed = ",".join(str(channel_id) for channel_id in channel_ids)
+    await db.execute(
+        """
+        INSERT INTO guild_settings (guild_id, tracked_channels)
+        VALUES (?, ?)
+        ON CONFLICT(guild_id) DO UPDATE SET
+            tracked_channels = excluded.tracked_channels
+        """,
+        (guild_id, packed),
+    )
+    await db.commit()
+
+
+async def reset_guild(db: aiosqlite.Connection, guild_id: int) -> None:
+    await db.execute("DELETE FROM guild_stats WHERE guild_id = ?", (guild_id,))
+    await db.execute("DELETE FROM user_stats WHERE guild_id = ?", (guild_id,))
+    await db.commit()
