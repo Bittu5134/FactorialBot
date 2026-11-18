@@ -157,3 +157,61 @@ async def on_guild_remove(guild: discord.Guild) -> None:
         f"➖ **Removed** {guild.name} (`{guild.id}`) · "
         f"{len(bot.guilds)} guilds total"
     )
+
+
+@bot.event
+async def on_message(message: discord.Message) -> None:
+    if message.author.bot or message.webhook_id:
+        return
+
+    if message.guild:
+        watched = utils.tracked.get(message.guild.id)
+        if watched:
+            parent_id = getattr(message.channel, "parent_id", None)
+            if message.channel.id not in watched and parent_id not in watched:
+                return
+
+    found = find_factorals(message.content or "")
+    if not found:
+        return
+
+    if not utils.reply_allowed(message.channel.id):
+        return
+
+    answer = replies.compose(
+        found[0],
+        extra=replies.too_many(found[1:]) if len(found) > 1 else "",
+    )
+
+    payload: dict = {
+        "mention_author": False,
+        "silent": True,
+        "allowed_mentions": discord.AllowedMentions.none(),
+    }
+    if _promo_due():
+        # Components-V2 cards cannot carry embeds, so promos go out as text.
+        payload["content"] = answer.text
+        payload["embed"] = support_embed()
+    else:
+        payload["view"] = FactReplyView(answer)
+
+    try:
+        await message.reply(**payload)
+    except discord.HTTPException:
+        log.warning("Could not reply in channel %s", message.channel.id, exc_info=True)
+        return
+
+    if utils.db_conn is None:
+        return
+    guild_id = message.guild.id if message.guild else 0
+    try:
+        await db.record(
+            utils.db_conn,
+            guild_id,
+            message.author.id,
+            found[0].n,
+            found[0].label,
+            discord.utils.utcnow(),
+        )
+    except Exception:
+        log.warning("Could not record a factorial", exc_info=True)
