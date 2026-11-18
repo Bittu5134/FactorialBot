@@ -1,5 +1,6 @@
 """Factorial detection and the math behind the answers."""
 
+import math
 import re
 from dataclasses import dataclass
 
@@ -34,3 +35,27 @@ def find_factorals(text: str) -> list[Factorial]:
             continue
         found.append(Factorial(n=n, double=match.group(2) == "!!"))
     return found
+
+
+def exact(n: int) -> int:
+    """n! for values small enough to show in chat."""
+    return math.factorial(n)
+
+
+def double_exact(n: int) -> int:
+    """n!! = n × (n-2) × (n-4) × ... × 1."""
+    return math.prod(range(n, 0, -2))
+
+
+def log10_factorial(n: int) -> float:
+    """log10(n!) without ever building n!."""
+    if n < 2:
+        return 0.0
+    if n <= 5000:
+        return math.fsum(math.log10(i) for i in range(2, n + 1))
+    # Stirling, with the first correction term.
+    return (
+        n * math.log10(n / math.e)
+        + 0.5 * math.log10(2 * math.pi * n)
+        + 1 / (12 * n * math.log(10))
+    )
