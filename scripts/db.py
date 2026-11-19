@@ -6,8 +6,8 @@ log = logging.getLogger(__name__)
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS guild_settings (
-    guild_id         INTEGER PRIMARY KEY,
-    tracked_channels TEXT NOT NULL DEFAULT ''
+    guild_id          INTEGER PRIMARY KEY,
+    excluded_channels TEXT NOT NULL DEFAULT ''
 );
 
 CREATE TABLE IF NOT EXISTS meta (
@@ -15,6 +15,20 @@ CREATE TABLE IF NOT EXISTS meta (
     value TEXT NOT NULL
 );
 """
+
+
+async def _migrate(db: aiosqlite.Connection) -> None:
+    """Rename the old whitelist column; the data means the same thing."""
+    rows = await db.execute_fetchall("PRAGMA table_info(guild_settings)")
+    for row in rows:
+        if row["name"] == "tracked_channels":
+            await db.execute(
+                "ALTER TABLE guild_settings "
+                "RENAME COLUMN tracked_channels TO excluded_channels"
+            )
+            await db.commit()
+            log.info("Migrated guild_settings.tracked_channels")
+            return
 
 
 async def open_db(path) -> aiosqlite.Connection:
@@ -25,6 +39,7 @@ async def open_db(path) -> aiosqlite.Connection:
     await db.execute("PRAGMA busy_timeout=5000")
     await db.executescript(SCHEMA)
     await db.commit()
+    await _migrate(db)
     log.info("Opened settings database at %s", path)
     return db
 
@@ -34,54 +49,43 @@ async def close_db(db: aiosqlite.Connection | None) -> None:
         await db.close()
 
 
-async def load_tracked(db: aiosqlite.Connection) -> dict[int, set[int]]:
-    """Every guild's tracked channel ids, for the in-memory cache."""
+async def load_excluded(db: aiosqlite.Connection) -> dict[int, set[int]]:
+    """Every guild's ignored channel ids, for the in-memory cache."""
     rows = await db.execute_fetchall(
-        "SELECT guild_id, tracked_channels FROM guild_settings"
+        "SELECT guild_id, excluded_channels FROM guild_settings"
     )
-    tracked: dict[int, set[int]] = {}
+    excluded: dict[int, set[int]] = {}
     for row in rows:
-        ids = {int(part) for part in row["tracked_channels"].split(",") if part}
+        ids = {int(part) for part in row["excluded_channels"].split(",") if part}
         if ids:
-            tracked[row["guild_id"]] = ids
-    return tracked
+            excluded[row["guild_id"]] = ids
+    return excluded
 
 
-async def get_tracked(db: aiosqlite.Connection, guild_id: int) -> set[int]:
+async def get_excluded(db: aiosqlite.Connection, guild_id: int) -> set[int]:
     rows = await db.execute_fetchall(
-        "SELECT tracked_channels FROM guild_settings WHERE guild_id = ?", (guild_id,)
+        "SELECT excluded_channels FROM guild_settings WHERE guild_id = ?", (guild_id,)
     )
     if not rows:
         return set()
-    return {int(part) for part in rows[0]["tracked_channels"].split(",") if part}
+    return {int(part) for part in rows[0]["excluded_channels"].split(",") if part}
 
 
-async def set_tracked(
+async def set_excluded(
     db: aiosqlite.Connection, guild_id: int, channel_ids: list[int]
 ) -> None:
-    """An empty list means every channel in the guild."""
+    """An empty list means every channel is answered in."""
     packed = ",".join(str(channel_id) for channel_id in channel_ids)
     await db.execute(
         """
-        INSERT INTO guild_settings (guild_id, tracked_channels)
+        INSERT INTO guild_settings (guild_id, excluded_channels)
         VALUES (?, ?)
         ON CONFLICT(guild_id) DO UPDATE SET
-            tracked_channels = excluded.tracked_channels
+            excluded_channels = excluded.excluded_channels
         """,
         (guild_id, packed),
     )
     await db.commit()
-
-
-__all__ = [
-    "close_db",
-    "get_meta",
-    "get_tracked",
-    "load_tracked",
-    "open_db",
-    "set_meta",
-    "set_tracked",
-]
 
 
 async def get_meta(db: aiosqlite.Connection, key: str) -> str | None:
@@ -98,3 +102,14 @@ async def set_meta(db: aiosqlite.Connection, key: str, value: str) -> None:
         (key, value),
     )
     await db.commit()
+
+
+__all__ = [
+    "close_db",
+    "get_excluded",
+    "get_meta",
+    "load_excluded",
+    "open_db",
+    "set_excluded",
+    "set_meta",
+]
