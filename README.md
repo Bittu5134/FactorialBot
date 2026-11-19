@@ -11,7 +11,7 @@
 ## How It Works
 
 - Watches every channel it can see, or up to five picked with `/setting`.
-- Replies to anything shaped like `10!` or `9!!`.
+- Replies to anything shaped like `10!` or `9!!`, in plain text.
 - Small factorials are printed in full: **`10! = 3,628,800`**.
 - Big ones get digit count, trailing zeros and scientific notation instead.
 - One reply per message, with a short per-channel cooldown.
@@ -51,9 +51,8 @@ python main.py
 ## Commands
 
 - `/factorial` — demand a specific factorial.
-- `/factstats` — totals, biggest factorial and top members.
 - `/setting` *(Manage Server)* — track up to five channels; empty means all.
-- `/facthelp` — what the bot does, plus an invite button.
+- `/help` — what the bot does, plus an invite button.
 
 ## Accuracy
 
