@@ -116,14 +116,6 @@ def _commands_fingerprint() -> str:
     return hashlib.sha256(raw.encode()).hexdigest()
 
 
-async def _sync_commands() -> list[app_commands.AppCommand]:
-    if config.GUILD_ID:
-        guild = discord.Object(id=config.GUILD_ID)
-        tree.copy_global_to(guild=guild)
-        return await tree.sync(guild=guild)
-    return await tree.sync()
-
-
 async def _sync_if_changed() -> int:
     """Sync only when the command set actually changed."""
     fingerprint = _commands_fingerprint()
@@ -136,7 +128,12 @@ async def _sync_if_changed() -> int:
         log.info("Slash commands unchanged; sync skipped")
         return 0
 
-    synced = await _sync_commands()
+    if config.GUILD_ID:
+        guild = discord.Object(id=config.GUILD_ID)
+        tree.copy_global_to(guild=guild)
+        synced = await tree.sync(guild=guild)
+    else:
+        synced = await tree.sync()
     if utils.db_conn is not None:
         await db.set_meta(utils.db_conn, key, fingerprint)
     return len(synced)

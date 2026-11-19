@@ -90,19 +90,13 @@ def trailing_zeros(n: int, double: bool = False) -> int:
     return zeros
 
 
-def scientific(n: int, double: bool = False) -> tuple[float, int]:
-    """n! as (mantissa, exponent): 100! -> (9.3326, 157)."""
+def scientific_text(n: int, double: bool = False) -> str:
+    """9.3326 × 10^157, ready for a Discord message."""
     log = log10_double_factorial(n) if double else log10_factorial(n)
     exponent = math.floor(log)
     mantissa = 10 ** (log - exponent)
     if mantissa >= 10:  # float rounding, keep the mantissa in [1, 10)
         mantissa /= 10
         exponent += 1
-    return mantissa, exponent
-
-
-def scientific_text(n: int, double: bool = False) -> str:
-    """9.3326 × 10^157, ready for a Discord message."""
-    mantissa, exponent = scientific(n, double)
     power = f"{exponent:,}" if exponent >= 10_000 else str(exponent)
     return f"{mantissa:.{config.MANTISSA_DIGITS}f} × 10^{power}"

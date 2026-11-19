@@ -10,9 +10,9 @@ allowed: dict[int, set[int]] = {}
 _last_reply: dict[int, float] = {}
 
 
-def reply_allowed(channel_id: int, now: float | None = None) -> bool:
+def reply_allowed(channel_id: int) -> bool:
     """True when this channel has been quiet long enough for a new reply."""
-    now = time.monotonic() if now is None else now
+    now = time.monotonic()
     last = _last_reply.get(channel_id)
     if last is not None and now - last < config.REPLY_COOLDOWN_SECS:
         return False

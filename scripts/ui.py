@@ -5,15 +5,11 @@ from . import config, db, utils
 COLOUR = discord.Colour.from_str("#3B82F6")
 
 
-def _channels(guild: discord.Guild) -> list[discord.abc.GuildChannel]:
-    return sorted(guild.text_channels, key=lambda channel: channel.position)
-
-
 def _allowed_text(guild: discord.Guild, allowed: list[int]) -> str:
     live = sorted(cid for cid in allowed if guild.get_channel(cid))
     gone = len(allowed) - len(live)
     if not live:
-        return "**Every channel.** Pick channels below to narrow it down."
+        return "**Every channel.**"
     lines = "\n".join(f"- <#{cid}>" for cid in live)
     plural = "s" if len(live) != 1 else ""
     text = f"**Watching {len(live)} channel{plural}:**\n{lines}"
@@ -90,22 +86,22 @@ class SettingsView(discord.ui.LayoutView):
         self.add_item(
             discord.ui.Container(
                 discord.ui.TextDisplay("## FactorialBot Settings"),
-                discord.ui.TextDisplay(_allowed_text(guild, allowed)),
+                discord.ui.TextDisplay(
+                    f"**Channels**\n{_allowed_text(guild, allowed)}"
+                ),
                 discord.ui.ActionRow(self.select),
                 discord.ui.ActionRow(select_all, clear),
                 discord.ui.TextDisplay(
-                    "-# Nothing picked means every channel. "
-                    f"The picker holds {config.MAX_PICKER_CHOICES} at a time."
+                    "-# 🛈 Nothing picked means every channel. "
+                    f"The picker holds {config.MAX_PICKER_CHOICES} at a time.\n"
+                    "-# Select all ticks every channel. Clear selection ticks none."
                 ),
                 accent_colour=COLOUR,
             )
         )
 
-    async def on_channels(self, interaction: discord.Interaction) -> None:
-        if not await _ready(interaction):
-            return
-
-        ids = [channel.id for channel in self.select.values]
+    async def _save(self, interaction: discord.Interaction, ids: list[int]) -> None:
+        """Persist a whitelist and re-render the card with it."""
         await db.set_allowed(utils.db_conn, interaction.guild_id, ids)
         if ids:
             utils.allowed[interaction.guild_id] = set(ids)
@@ -114,33 +110,27 @@ class SettingsView(discord.ui.LayoutView):
         await interaction.response.edit_message(
             view=SettingsView(interaction.guild, ids)
         )
+
+    async def on_channels(self, interaction: discord.Interaction) -> None:
+        if not await _ready(interaction):
+            return
+        await self._save(interaction, [channel.id for channel in self.select.values])
 
     async def on_select_all(self, interaction: discord.Interaction) -> None:
         if not await _ready(interaction):
             return
-
-        ids = [channel.id for channel in _channels(interaction.guild)]
+        ids = sorted(
+            (channel.id for channel in interaction.guild.text_channels),
+        )
         if len(ids) > config.MAX_PICKER_CHOICES:
             # Too many to show at once; an empty whitelist already means everything.
             ids = []
-        await db.set_allowed(utils.db_conn, interaction.guild_id, ids)
-        if ids:
-            utils.allowed[interaction.guild_id] = set(ids)
-        else:
-            utils.allowed.pop(interaction.guild_id, None)
-        await interaction.response.edit_message(
-            view=SettingsView(interaction.guild, ids)
-        )
+        await self._save(interaction, ids)
 
     async def on_clear(self, interaction: discord.Interaction) -> None:
         if not await _ready(interaction):
             return
-
-        await db.set_allowed(utils.db_conn, interaction.guild_id, [])
-        utils.allowed.pop(interaction.guild_id, None)
-        await interaction.response.edit_message(
-            view=SettingsView(interaction.guild, [])
-        )
+        await self._save(interaction, [])
 
 
 class HelpView(discord.ui.LayoutView):
@@ -152,14 +142,15 @@ class HelpView(discord.ui.LayoutView):
             discord.ui.TextDisplay(
                 "I read every message and pounce on anything shaped like "
                 "`10!` or `9!!`.\n"
-                "Small factorials get typed out in full. Big ones get "
-                "**digits**, **trailing zeros** and a scientific shrug, "
-                "because nobody needs 158 digits in chat."
+                "Small ones get typed out in full. Big ones get **digits**, "
+                "**trailing zeros**\nand a scientific shrug. Nobody needs "
+                "158 digits in chat."
             ),
             discord.ui.Separator(),
             discord.ui.TextDisplay(
+                "**Commands**\n"
                 "**/factorial** — demand a specific factorial\n"
-                "**/setting** — whitelist the channels I may answer in\n"
+                "**/setting** — pick the channels I may answer in\n"
                 "**Rate limit** — one reply every "
                 f"{config.REPLY_COOLDOWN_SECS:g}s per channel"
             ),
@@ -184,5 +175,6 @@ class HelpView(discord.ui.LayoutView):
             )
         )
         items.append(discord.ui.ActionRow(*links))
+        items.append(discord.ui.TextDisplay("-# /factorial • /setting"))
 
         self.add_item(discord.ui.Container(*items, accent_colour=COLOUR))
