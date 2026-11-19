@@ -47,11 +47,17 @@ EXACT_TAILS = (
     "Write that down, it's going on the test.",
     "I was told not to compute this. I computed it anyway.",
     "Somebody had to multiply all of those. It was me.",
+    "The digit count is {count}. I'd recount, but I'm not a masochist.",
+    "That's {value}, exactly. Screenshot it, nobody will believe you otherwise.",
+    "Commas included free of charge.",
+    "Verified twice, because I don't trust myself either.",
+    "{value} is the answer. The question was yours, so the blame is too.",
+    "No rounding was harmed in the making of this number.",
 )
 
 BIG_HEADLINES = (
     "{label} has {digits} digits",
-    "The factorial of {label} has {digits} digits",
+    "{label} clocks in at {digits} digits",
     "{label}? That's {digits} digits of nope",
     "Let's talk about {label}: {digits} digits",
 )
@@ -62,18 +68,34 @@ BIG_TAILS = (
     "Starts with {sci}, ends in {zeros} zeros. Everything in between is your problem.",
     "{zeros} zeros at the end, {sci} at the front. The middle is classified.",
     "Roughly {sci}, with {zeros} zeros dragging behind it. Happy now?",
+    "Trailing zero count: {zeros}. Counting them yourself is homework now.",
+    "Roughly {sci} up front, {zeros} zeros out back. The rest stays in my head.",
+    "{sci} is the headline, {zeros} trailing zeros the footnote. Nobody reads footnotes.",
+    "Scientific notation is a kindness here. The full number would fill the channel.",
+    "Leading digits around {sci}, trailing zeros {zeros}. Decide for yourself if that's enough.",
+    "I'll give you the shape: {sci} at the front, {zeros} zeros at the back, mystery in between.",
 )
 
 HUGE_TAILS = (
     "**{digits} digits.** Reading that out loud at one digit per second would take {read_time}.",
     "**{digits} digits**, {zeros} of them zeros at the end. That's {read_time} of reading, if you're bored.",
     "It starts with {sci} and ends with {zeros} zeros. The other {digits} digits are between you and God.",
+    "**{digits} digits** total. Reading them aloud would take {read_time}. Not doing that.",
+    "Leading with {sci}, trailing with {zeros} zeros. The middle is {digits} digits of someone else's problem.",
+    "Printing the full value would break the channel, so I'm keeping it to the ends.",
+    "Ends in {zeros} zeros, starts with {sci}. Reading time for the whole thing: {read_time}. Skip it.",
+    "At one digit per second that's {read_time} of your life. I'd suggest a hobby instead.",
 )
 
 DOUBLE_TAILS = (
     "Double factorial, so I only multiplied every other number. Commitment issues, but faster.",
     "That's a double factorial: n × (n-2) × (n-4) × ... You asked, I answered.",
     "It's the double factorial. Every other number gets a turn. Very democratic.",
+    "Skipping every other number is a strategy. Efficient, and only slightly suspicious.",
+    "Half the multiplications, twice the attitude. That's the double factorial for you.",
+    "Double factorials only touch every second term. The odd ones feel left out, I'm told.",
+    "The result is {digits} digits long, still less work than the full factorial would be.",
+    "Smaller than the full factorial, around {sci}. Bigger than your patience, I assume.",
 )
 
 TRIVIAL_ZERO = (
@@ -81,12 +103,20 @@ TRIVIAL_ZERO = (
     "0! is 1. Math agreed to this and we all moved on.",
     "One. A single unit of nothing. Beautiful.",
     "Yes, one. The empty product has one job and it does it.",
+    "Zero factorial is one. The empty product shows up and shrugs.",
+    "Nothing to multiply, so the answer is one. Simple, and somehow still controversial.",
+    "Multiplying nothing gives one. Some people have opinions about that. They're mistaken.",
+    "0! is 1 by convention, and the convention has been very patient with us.",
 )
 
 TRIVIAL_ONE = (
     "One. The most exciting factorial there is.",
     "Multiplication by one. Thrilling stuff.",
     "One. Don't spend it all at once.",
+    "Multiplying by one changes nothing. Consider it a warm-up.",
+    "Still one. The least dramatic thing I've ever computed.",
+    "The product of one number is that number. Groundbreaking, I know.",
+    "Nothing grew, nothing shrank. A tiny, honest result.",
 )
 
 SASS = (
@@ -94,6 +124,12 @@ SASS = (
     "This message has been peer reviewed by nobody.",
     "I'm not a calculator. I'm a calculator with opinions.",
     "You're welcome, I think.",
+    "Consider this your daily dose of unsolicited arithmetic.",
+    "Factorials are fun. Asking for them is also fun, for me.",
+    "Free of charge, which is the only reason you're getting attitude with it.",
+    "I'd say you're welcome, but you didn't ask for this.",
+    "Filed under: things you didn't ask me to compute.",
+    "Unsolicited, but accurate.",
 )
 
 READ_TIME_UNITS = (
