@@ -25,10 +25,10 @@
 
 ## Commands
 
-- `/help` — what the bot does, plus invite and support buttons.
-- `/setting` *(Manage Server)* — whitelist the channels the bot may answer in.
+- `/help` - what the bot does, plus invite and support buttons.
+- `/setting` *(Manage Server)* - whitelist the channels the bot may answer in.
   Select all / clear, or pick them by hand. Nothing picked means every channel.
-- `/factorial` — demand a specific factorial, with attitude.
+- `/factorial` - demand a specific factorial, with attitude.
 
 > [!NOTE]
 > You don't have to use `/factorial` at all: any message containing something
@@ -64,11 +64,11 @@ Then run `/setting` in your server if you only want it answering in a few channe
 
 Only two, and both are optional except the token:
 
-- `DISCORD_TOKEN` — Discord bot token.
-- `LOG_WEBHOOK_URL` — Optional webhook that receives guild join/leave logs.
+- `DISCORD_TOKEN` - Discord bot token.
+- `LOG_WEBHOOK_URL` - Optional webhook that receives guild join/leave logs.
 
-Everything else — reply cooldown, promo chance, tracked database path, dev
-guild id — lives in [`scripts/config.py`](./scripts/config.py) as plain
+Everything else - reply cooldown, promo chance, tracked database path, dev
+guild id - lives in [`scripts/config.py`](./scripts/config.py) as plain
 constants. Edit and restart.
 
 ## Support
