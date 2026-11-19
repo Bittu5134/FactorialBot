@@ -178,7 +178,7 @@ _FOOTERS = (
     "FactorialBot • accuracy not guaranteed",
     "FactorialBot • I accept tips in factorials",
     "FactorialBot • this is not financial advice",
-    "/factorial • /factstats",
+    "/factorial • /help",
 )
 
 
