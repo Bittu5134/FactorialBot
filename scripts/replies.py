@@ -132,6 +132,39 @@ SASS = (
     "Unsolicited, but accurate.",
 )
 
+FLAVOUR = (
+    "I checked it twice. Thorough and a little insufferable.",
+    "Your move, mathematics.",
+    "The universe owes me a round of applause for this.",
+    "That one had been waiting patiently for you all along.",
+    "Long one, that. My circuits are still warm.",
+    "Go drink some water. You earned it.",
+    "Every number this size has a story. This one is long.",
+    "I would have hummed while working, if I hummed.",
+    "Another day, another product of consecutive integers.",
+    "Somewhere a multiplication table is quietly weeping.",
+    "Not a single shortcut was harmed in making this.",
+    "I did not enjoy that. I did not not enjoy it either.",
+    "Pencil sharpened. Dignity mostly intact.",
+    "Someone out there is going to be very glad of this.",
+)
+
+ASIDES = (
+    "Legendre's formula counted {zeros} trailing zeros. Exact; my patience is not.",
+    "Digit count came from logarithms: log10 of {label}, floored, plus one.",
+    "Stirling's approximation covers the leading digits of {label} well enough.",
+    "The digit count of {label} came from summing logs, not expanding anything.",
+    "The middle of {label} was never computed. Only its ends were checked.",
+    "Trailing zeros are floor(n/5) + floor(n/25) + floor(n/125) and so on.",
+    "The {zeros} trailing zeros of {label} are a sum over powers of five.",
+    "Stirling gives n! as about sqrt(2\u03c0n)(n/e)^n. Close, but the error is not zero.",
+    "Nothing about {label} was printed in full. It was measured, not built.",
+    "Its logarithm was taken, floored and bumped by one. Nobody counted {digits} digits.",
+)
+
+FLAVOUR_CHANCE = 0.3
+ASIDE_CHANCE = 0.25
+
 READ_TIME_UNITS = (
     (60, 1, "second"),
     (3600, 60, "minute"),
@@ -244,7 +277,10 @@ def _value(f: Factorial) -> int:
 
 def _trivial(f: Factorial, rng: random.Random) -> str:
     pool = TRIVIAL_ZERO if f.n == 0 else TRIVIAL_ONE
-    return rng.choice(pool)
+    line = rng.choice(pool)
+    if rng.random() < FLAVOUR_CHANCE:
+        line = f"{line} {rng.choice(FLAVOUR)}"
+    return line
 
 
 def _exact_answer(f: Factorial, value: int, rng: random.Random) -> str:
@@ -278,8 +314,15 @@ def _big_answer(f: Factorial, rng: random.Random) -> str:
         return f"{tail} It ends in something odd, so no zeros there."
 
     if count >= 1_000_000:
-        return _pick(HUGE_TAILS, rng, **values)
-    return _pick(BIG_TAILS, rng, **values)
+        tail = _pick(HUGE_TAILS, rng, **values)
+    else:
+        tail = _pick(BIG_TAILS, rng, **values)
+
+    if rng.random() < ASIDE_CHANCE:
+        return f"{tail}\n{_pick(ASIDES, rng, **values)}"
+    if rng.random() < FLAVOUR_CHANCE:
+        return f"{tail} {rng.choice(FLAVOUR)}"
+    return tail
 
 
 __all__ = ["Answer", "compose", "refuse", "refuse_negative", "too_many"]
