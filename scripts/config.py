@@ -1,8 +1,10 @@
 import os
 from pathlib import Path
 
+BASE_DIR = Path(__file__).resolve().parent.parent
 
-def _load_dotenv(path: str = ".env") -> None:
+
+def _load_dotenv(path: str | Path = BASE_DIR / ".env") -> None:
     if not os.path.exists(path):
         return
     with open(path, encoding="utf-8") as f:
@@ -22,9 +24,7 @@ TOKEN = os.getenv("DISCORD_TOKEN", "")
 GUILD_ID = os.getenv("GUILD_ID")
 GUILD_ID = int(GUILD_ID) if GUILD_ID else None
 
-BASE_DIR = Path(__file__).resolve().parent.parent
-
-DB_PATH = BASE_DIR / "factorialbot.db"
+DB_PATH = Path(os.getenv("DB_PATH", BASE_DIR / "factorialbot.db"))
 
 LOG_WEBHOOK_URL = os.getenv("LOG_WEBHOOK_URL", "")
 
@@ -49,4 +49,4 @@ MAX_INPUT_DIGITS = 15
 
 MAX_N = 10**15
 
-DEFAULT_FOOTER = "/factorial • accuracy not guaranteed"
+DEFAULT_FOOTER = ""

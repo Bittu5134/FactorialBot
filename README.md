@@ -47,6 +47,8 @@ python main.py
 - `REPLY_COOLDOWN_SECS` — seconds between replies in one channel (default `3`).
 - `LOG_WEBHOOK_URL` — optional webhook for guild join/leave logs.
 - `SUPPORT_CHANCE` — fraction of replies with the Patreon embed (default `0.1`).
+- `DB_PATH` — where to keep the settings database (default `factorialbot.db`).
+  `.env` is always read from the project root, whatever the working directory.
 
 ## Commands
 
