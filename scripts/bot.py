@@ -65,6 +65,12 @@ def _promo_due() -> bool:
 
 @tree.command(name="factorial", description="Get one factorial, with attitude")
 async def factorial_command(interaction: discord.Interaction, number: int) -> None:
+    if not utils.reply_allowed(interaction.channel_id or 0):
+        await interaction.response.send_message(
+            "Give the last one a second to land.", ephemeral=True
+        )
+        return
+
     if number < 0:
         answer = replies.refuse_negative(number)
     elif number > config.MAX_N:
@@ -154,10 +160,26 @@ async def setup_hook():
     except discord.HTTPException:
         log.exception("Command sync failed; the previous commands stay registered")
 
+    log.info(
+        "Tracking %d configured guild(s); promo chance %.2f",
+        len(utils.tracked),
+        config.SUPPORT_CHANCE,
+    )
+
 
 @bot.event
 async def on_ready():
     log.info("Logged in as %s in %d guild(s)", bot.user, len(bot.guilds))
+
+
+@bot.event
+async def on_resumed() -> None:
+    log.info("Reconnected to Discord")
+
+
+@bot.event
+async def on_disconnect() -> None:
+    log.warning("Disconnected from Discord, reconnecting")
 
 
 async def _post_log(content: str) -> None:
