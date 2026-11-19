@@ -2,9 +2,11 @@
 
 # FactorialBot
 
+![FactorialBot](assets/banner.png)
+
 **A Discord bot that answers every `10!` in chat, whether you asked or not.**
 
-[![Invite FactorialBot](https://img.shields.io/badge/Discord-Invite%20Bot-green?style=for-the-badge&logo=discord&logoColor=white)](https://discord.com/oauth2/authorize?client_id=938747383104307233&permissions=68608&integration_type=0&scope=bot+applications.commands)
+[![Invite FactorialBot](https://img.shields.io/badge/Discord-Invite%20Bot-green?style=for-the-badge&logo=discord&logoColor=white)](https://discord.com/oauth2/authorize?client_id=1572984961030422610&permissions=68608&integration_type=0&scope=applications.commands+bot)
 
 </div>
 

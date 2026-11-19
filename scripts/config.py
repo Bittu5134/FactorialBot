@@ -13,7 +13,8 @@ def _load_dotenv(path: str | Path = BASE_DIR / ".env") -> None:
             if not line or line.startswith("#") or "=" not in line:
                 continue
             k, v = line.split("=", 1)
-            os.environ.setdefault(k.strip(), v.strip().strip("'\""))
+            # .env wins over the ambient environment so the repo config is the truth.
+            os.environ[k.strip()] = v.strip().strip("'\"")
 
 
 _load_dotenv()
