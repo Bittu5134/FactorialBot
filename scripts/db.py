@@ -51,8 +51,11 @@ async def open_db(path) -> aiosqlite.Connection:
     db = await aiosqlite.connect(path)
     db.row_factory = aiosqlite.Row
     await db.execute("PRAGMA journal_mode=WAL")
+    await db.execute("PRAGMA synchronous=NORMAL")
+    await db.execute("PRAGMA busy_timeout=5000")
     await db.executescript(SCHEMA)
     await db.commit()
+    log.info("Opened stats database at %s", path)
     return db
 
 
