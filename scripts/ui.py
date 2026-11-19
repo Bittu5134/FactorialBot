@@ -5,12 +5,17 @@ from . import config, db, utils
 COLOUR = discord.Colour.from_str("#3B82F6")
 
 
-def _tracked_text(guild: discord.Guild, tracked: list[int]) -> str:
-    live = sorted(channel_id for channel_id in tracked if guild.get_channel(channel_id))
+def _excluded_text(guild: discord.Guild, excluded: list[int]) -> str:
+    live = sorted(cid for cid in excluded if guild.get_channel(cid))
+    gone = len(excluded) - len(live)
     if not live:
-        return "**Every channel.** Pick any below to narrow it down."
-    lines = "\n".join(f"- <#{channel_id}>" for channel_id in live)
-    return f"**Watching {len(live)} channel{'s' if len(live) != 1 else ''}:**\n{lines}"
+        return "**Ignoring nothing.** Every channel gets answered."
+    lines = "\n".join(f"- <#{cid}>" for cid in live)
+    plural = "s" if len(live) != 1 else ""
+    text = f"**Ignoring {len(live)} channel{plural}:**\n{lines}"
+    if gone:
+        text += f"\n-# {gone} more point at deleted channels"
+    return text
 
 
 def support_embed() -> discord.Embed:
@@ -41,41 +46,40 @@ async def _deny_non_admin(interaction: discord.Interaction) -> bool:
 
 
 class SettingsView(discord.ui.LayoutView):
-    """Pick up to five channels to track; an empty pick means everything."""
+    """Pick channels the bot should ignore; an empty pick means everywhere."""
 
-    def __init__(self, guild: discord.Guild, tracked: list[int]) -> None:
+    def __init__(self, guild: discord.Guild, excluded: list[int]) -> None:
         super().__init__(timeout=None)
 
         self.select = discord.ui.ChannelSelect(
             channel_types=[discord.ChannelType.text],
-            placeholder=f"Pick up to {config.MAX_TRACKED_CHANNELS} channels",
+            placeholder="Pick the channels to ignore",
             min_values=0,
-            max_values=config.MAX_TRACKED_CHANNELS,
+            max_values=config.MAX_PICKER_CHOICES,
             default_values=[
-                discord.Object(id=channel_id)
-                for channel_id in tracked[: config.MAX_TRACKED_CHANNELS]
-                if guild.get_channel(channel_id)
+                discord.Object(id=cid)
+                for cid in excluded[: config.MAX_PICKER_CHOICES]
+                if guild.get_channel(cid)
             ],
         )
         self.select.callback = self.on_channels
 
-        track_all = discord.ui.Button(
-            label="Track everything",
+        clear = discord.ui.Button(
+            label="Ignore nothing",
             style=discord.ButtonStyle.secondary,
             emoji="🌐",
         )
-        track_all.callback = self.on_track_all
+        clear.callback = self.on_clear
 
         self.add_item(
             discord.ui.Container(
                 discord.ui.TextDisplay("## FactorialBot Settings"),
-                discord.ui.TextDisplay(_tracked_text(guild, tracked)),
+                discord.ui.TextDisplay(_excluded_text(guild, excluded)),
                 discord.ui.ActionRow(self.select),
-                discord.ui.ActionRow(track_all),
+                discord.ui.ActionRow(clear),
                 discord.ui.TextDisplay(
-                    "-# Maximum "
-                    f"{config.MAX_TRACKED_CHANNELS} channels. "
-                    "Leaving the picker empty tracks every channel."
+                    "-# Picked channels are ignored everywhere. "
+                    "Nothing picked means every channel."
                 ),
                 accent_colour=COLOUR,
             )
@@ -90,16 +94,14 @@ class SettingsView(discord.ui.LayoutView):
             )
             return
 
-        ids = [channel.id for channel in self.select.values][
-            : config.MAX_TRACKED_CHANNELS
-        ]
-        await db.set_tracked(utils.db_conn, interaction.guild_id, ids)
-        utils.tracked[interaction.guild_id] = set(ids)
+        ids = [channel.id for channel in self.select.values]
+        await db.set_excluded(utils.db_conn, interaction.guild_id, ids)
+        utils.excluded[interaction.guild_id] = set(ids)
         await interaction.response.edit_message(
             view=SettingsView(interaction.guild, ids)
         )
 
-    async def on_track_all(self, interaction: discord.Interaction) -> None:
+    async def on_clear(self, interaction: discord.Interaction) -> None:
         if await _deny_non_admin(interaction):
             return
         if utils.db_conn is None:
@@ -108,8 +110,8 @@ class SettingsView(discord.ui.LayoutView):
             )
             return
 
-        await db.set_tracked(utils.db_conn, interaction.guild_id, [])
-        utils.tracked.pop(interaction.guild_id, None)
+        await db.set_excluded(utils.db_conn, interaction.guild_id, [])
+        utils.excluded.pop(interaction.guild_id, None)
         await interaction.response.edit_message(
             view=SettingsView(interaction.guild, [])
         )
@@ -131,7 +133,7 @@ class HelpView(discord.ui.LayoutView):
             discord.ui.Separator(),
             discord.ui.TextDisplay(
                 "**/factorial** — demand a specific factorial\n"
-                "**/setting** — pick up to five channels to watch\n"
+                "**/setting** — blacklist channels the bot should ignore\n"
                 "**Rate limit** — one reply every "
                 f"{config.REPLY_COOLDOWN_SECS:g}s per channel"
             ),

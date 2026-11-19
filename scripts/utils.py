@@ -4,8 +4,8 @@ from . import config
 
 db_conn = None
 
-# guild_id -> watched channel ids; an empty set means every channel.
-tracked: dict[int, set[int]] = {}
+# guild_id -> ignored channel ids; an empty set means every channel.
+excluded: dict[int, set[int]] = {}
 
 _last_reply: dict[int, float] = {}
 
@@ -42,4 +42,10 @@ def invite_url(client_id: int) -> str:
     )
 
 
-__all__ = ["db_conn", "invite_url", "reply_allowed", "reset_rate_limits", "tracked"]
+__all__ = [
+    "db_conn",
+    "excluded",
+    "invite_url",
+    "reply_allowed",
+    "reset_rate_limits",
+]

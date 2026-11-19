@@ -86,15 +86,13 @@ async def factorial_command(interaction: discord.Interaction, number: int) -> No
     await interaction.response.send_message(**payload)
 
 
-@tree.command(
-    name="settings", description="Pick up to 5 channels for FactorialBot to track"
-)
+@tree.command(name="setting", description="Blacklist channels the bot should ignore")
 @app_commands.guild_only()
 @app_commands.default_permissions(manage_guild=True)
 async def setting_command(interaction: discord.Interaction) -> None:
-    tracked = sorted(utils.tracked.get(interaction.guild_id, set()))
+    excluded = sorted(utils.excluded.get(interaction.guild_id, set()))
     await interaction.response.send_message(
-        view=SettingsView(interaction.guild, tracked),
+        view=SettingsView(interaction.guild, excluded),
         ephemeral=True,
         allowed_mentions=discord.AllowedMentions.none(),
     )
@@ -148,11 +146,11 @@ async def _sync_if_changed() -> int:
 async def setup_hook():
     try:
         utils.db_conn = await db.open_db(config.DB_PATH)
-        utils.tracked = await db.load_tracked(utils.db_conn)
+        utils.excluded = await db.load_excluded(utils.db_conn)
     except Exception:
         utils.db_conn = None
-        utils.tracked = {}
-        log.exception("Stats database unavailable; running without persistence")
+        utils.excluded = {}
+        log.exception("Settings database unavailable; running with defaults")
 
     try:
         synced = await asyncio.wait_for(_sync_if_changed(), SYNC_TIMEOUT_SECS)
@@ -165,8 +163,8 @@ async def setup_hook():
         log.debug("Command sync failure", exc_info=True)
 
     log.info(
-        "Tracking %d configured guild(s); promo chance %.2f",
-        len(utils.tracked),
+        "%d guild(s) have ignored channels; promo chance %.2f",
+        len(utils.excluded),
         config.SUPPORT_CHANCE,
     )
 
@@ -232,10 +230,10 @@ async def on_message(message: discord.Message) -> None:
         return
 
     if message.guild:
-        watched = utils.tracked.get(message.guild.id)
-        if watched:
+        ignored = utils.excluded.get(message.guild.id)
+        if ignored:
             parent_id = getattr(message.channel, "parent_id", None)
-            if message.channel.id not in watched and parent_id not in watched:
+            if message.channel.id in ignored or parent_id in ignored:
                 return
         me = message.guild.me
         if me and not message.channel.permissions_for(me).send_messages:

@@ -38,7 +38,8 @@ INVITE_PERMISSIONS = 68608
 REPLY_COOLDOWN_SECS = 1
 MAX_EXTRA_MENTIONS = 2
 
-MAX_TRACKED_CHANNELS = 5
+# Discord caps a single select at 25 choices; the stored list has no limit.
+MAX_PICKER_CHOICES = 25
 
 # Up to this n the answer is typed out in full.
 EXACT_MAX_N = 22
