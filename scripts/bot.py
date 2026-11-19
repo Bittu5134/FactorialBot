@@ -157,7 +157,7 @@ async def setup_hook():
         else:
             synced = await tree.sync()
         log.info("Synced %d slash command(s).", len(synced))
-    except discord.HTTPException:
+    except Exception:
         log.exception("Command sync failed; the previous commands stay registered")
 
     log.info(
