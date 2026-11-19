@@ -21,25 +21,28 @@ _load_dotenv()
 
 TOKEN = os.getenv("DISCORD_TOKEN", "")
 
-# Development only: sync commands to this guild instead of globally.
-GUILD_ID = os.getenv("GUILD_ID")
-GUILD_ID = int(GUILD_ID) if GUILD_ID else None
-
-DB_PATH = Path(os.getenv("DB_PATH", BASE_DIR / "factorialbot.db"))
-
 LOG_WEBHOOK_URL = os.getenv("LOG_WEBHOOK_URL", "")
+
+# Set to a guild id while developing to sync commands there instantly.
+GUILD_ID: int | None = None
+
+DB_PATH = BASE_DIR / "factorialbot.db"
 
 PATREON_URL = "https://www.patreon.com/c/LazyBittu"
 
-SUPPORT_CHANCE = float(os.getenv("SUPPORT_CHANCE", "0.1"))
+# Fraction of answers that carry the Patreon embed. 0 turns the plug off.
+SUPPORT_CHANCE = 0.1
 
 # View Channels, Send Messages, Read Message History.
 INVITE_PERMISSIONS = 68608
 
-REPLY_COOLDOWN_SECS = 1
+# Minimum gap between two replies in the same channel.
+REPLY_COOLDOWN_SECS = 3
+
+# Factorials named in the "one at a time, please" footnote.
 MAX_EXTRA_MENTIONS = 2
 
-# Discord caps a single select at 25 choices; the stored list has no limit.
+# Discord caps a select at 25 choices; nothing else is limited.
 MAX_PICKER_CHOICES = 25
 
 # Up to this n the answer is typed out in full.
@@ -51,4 +54,4 @@ MAX_INPUT_DIGITS = 15
 
 MAX_N = 10**15
 
-DEFAULT_FOOTER = ""
+DEFAULT_FOOTER = "/factorial • accuracy not guaranteed"

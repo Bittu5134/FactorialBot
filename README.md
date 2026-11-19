@@ -1,10 +1,10 @@
 <div align="center">
 
-<img id="Hero" src="./assets/banner.png" alt="FactorialBot banner" width="880">
+<img id="Hero" src="./assets/banner.png" alt="FactorialBot banner" width="700">
 
 # FactorialBot
 
-**A Discord bot that answers every `10!` in chat, whether you asked or not.**
+**A Discord bot that answers every factorial (`10!`) in chat, whether you asked or not.**
 
 [![Invite FactorialBot](https://img.shields.io/badge/Discord-Invite%20Bot-green?style=for-the-badge&logo=discord&logoColor=white)](https://discord.com/oauth2/authorize?client_id=1572984961030422610&permissions=68608&integration_type=0&scope=applications.commands+bot)
 [![Join the server](https://img.shields.io/badge/Discord-Join%20server-5865F2?style=for-the-badge&logo=discord&logoColor=white)](https://bittu.dev/discord/)
@@ -20,14 +20,19 @@
 - Big ones get the digit count, the trailing zeros and a scientific shrug,
   because nobody needs 158 digits in chat.
 - One reply per message, and one reply every few seconds per channel.
-- Roughly 1 in 10 replies carries a Patreon embed. The math is free; the hosting is not.
 
-```
-you: 100!
-bot: Let's talk about 100!: 158 digits
-     It ends in 24 zeros and starts around 9.3326 × 10^157. I'm not typing the rest.
-     /factorial · /help
-```
+![](./assets/screenshot.png)
+
+## Commands
+
+- `/help` — what the bot does, plus invite and support buttons.
+- `/setting` *(Manage Server)* — whitelist the channels the bot may answer in.
+  Select all / clear, or pick them by hand. Nothing picked means every channel.
+- `/factorial` — demand a specific factorial, with attitude.
+
+> [!NOTE]
+> You don't have to use `/factorial` at all: any message containing something
+> that looks like a factorial gets a reply on its own.
 
 ## Quickstart
 
@@ -55,41 +60,16 @@ Then run `/setting` in your server if you only want it answering in a few channe
 > **Bot → Privileged Gateway Intents**, otherwise Discord will not let it read
 > messages and it will refuse to start.
 
-> [!NOTE]
-> The invite link above already asks for the permissions it needs: View
-> Channels, Send Messages and Read Message History. Slash commands need the
-> `applications.commands` scope, which it also asks for.
-
 ### ENV Variables
 
+Only two, and both are optional except the token:
+
 - `DISCORD_TOKEN` — Discord bot token.
-- `GUILD_ID` — Optional development guild ID for instant command syncing.
-- `REPLY_COOLDOWN_SECS` — Optional seconds between two replies in one channel (default `3`).
-- `LOG_WEBHOOK_URL` — Optional webhook URL for guild join/leave logs.
-- `SUPPORT_CHANCE` — Optional fraction of replies with the Patreon embed (default `0.1`, `0` disables it).
-- `DB_PATH` — Optional path for the settings database (default `factorialbot.db`). `.env` is always read from the project root, whatever the working directory.
+- `LOG_WEBHOOK_URL` — Optional webhook that receives guild join/leave logs.
 
-## Commands
-
-- `/factorial` — demand a specific factorial, with attitude.
-- `/setting` *(Manage Server)* — whitelist the channels the bot may answer in.
-  Select all / clear, or pick them by hand. Nothing picked means every channel.
-- `/help` — what the bot does, plus invite and support buttons.
-
-## Screenshots
-
-<div align="center">
-
-<img src="./assets/screenshot.png" width="640" alt="FactorialBot answering 78! in chat">
-
-</div>
-
-## A Note On Accuracy
-
-Small factorials are computed exactly. Big ones are described with Stirling's
-approximation: the leading digits and the trailing zeros are real, the middle
-was never built. This is a joke bot with a calculator habit, not a
-peer-reviewed mathematics service.
+Everything else — reply cooldown, promo chance, tracked database path, dev
+guild id — lives in [`scripts/config.py`](./scripts/config.py) as plain
+constants. Edit and restart.
 
 ## Support
 
