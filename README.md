@@ -10,7 +10,8 @@
 
 ## How It Works
 
-- Watches every channel it can see, except the ones blacklisted with `/setting`.
+- Watches every channel it can see, except the ones blacklisted with `/setting`
+  (or the whole server at once).
 - Replies to anything shaped like `10!` or `9!!`, in plain text.
 - Small factorials are printed in full: **`10! = 3,628,800`**.
 - Big ones get digit count, trailing zeros and scientific notation instead.
@@ -53,7 +54,8 @@ python main.py
 ## Commands
 
 - `/factorial` — demand a specific factorial.
-- `/setting` *(Manage Server)* — blacklist channels to ignore, no limit; empty means none.
+- `/setting` *(Manage Server)* — blacklist channels to ignore, or ignore the whole
+  server; empty means none. No limit.
 - `/help` — what the bot does, plus an invite button.
 
 ## Accuracy

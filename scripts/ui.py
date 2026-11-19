@@ -48,8 +48,16 @@ async def _deny_non_admin(interaction: discord.Interaction) -> bool:
 class SettingsView(discord.ui.LayoutView):
     """Pick channels the bot should ignore; an empty pick means everywhere."""
 
-    def __init__(self, guild: discord.Guild, excluded: list[int]) -> None:
+    def __init__(
+        self,
+        guild: discord.Guild,
+        excluded: list[int],
+        ignore_all: bool = False,
+    ) -> None:
         super().__init__(timeout=None)
+
+        self.excluded_ids = excluded
+        self.ignore_all = ignore_all
 
         self.select = discord.ui.ChannelSelect(
             channel_types=[discord.ChannelType.text],
@@ -64,19 +72,35 @@ class SettingsView(discord.ui.LayoutView):
         )
         self.select.callback = self.on_channels
 
-        clear = discord.ui.Button(
+        ignore_everything = discord.ui.Button(
+            label="Ignoring everything" if ignore_all else "Ignore everything",
+            style=(
+                discord.ButtonStyle.danger
+                if ignore_all
+                else discord.ButtonStyle.secondary
+            ),
+            emoji="🔇",
+            disabled=ignore_all,
+        )
+        ignore_everything.callback = self.on_ignore_all
+
+        ignore_nothing = discord.ui.Button(
             label="Ignore nothing",
             style=discord.ButtonStyle.secondary,
             emoji="🌐",
         )
-        clear.callback = self.on_clear
+        ignore_nothing.callback = self.on_clear
 
         self.add_item(
             discord.ui.Container(
                 discord.ui.TextDisplay("## FactorialBot Settings"),
-                discord.ui.TextDisplay(_excluded_text(guild, excluded)),
+                discord.ui.TextDisplay(
+                    "**Ignoring every channel in this server.**"
+                    if ignore_all
+                    else _excluded_text(guild, excluded)
+                ),
                 discord.ui.ActionRow(self.select),
-                discord.ui.ActionRow(clear),
+                discord.ui.ActionRow(ignore_everything, ignore_nothing),
                 discord.ui.TextDisplay(
                     "-# Picked channels are ignored everywhere. "
                     "Nothing picked means every channel."
@@ -95,10 +119,27 @@ class SettingsView(discord.ui.LayoutView):
             return
 
         ids = [channel.id for channel in self.select.values]
-        await db.set_excluded(utils.db_conn, interaction.guild_id, ids)
+        await db.set_settings(utils.db_conn, interaction.guild_id, ids, False)
         utils.excluded[interaction.guild_id] = set(ids)
+        utils.muted.discard(interaction.guild_id)
         await interaction.response.edit_message(
             view=SettingsView(interaction.guild, ids)
+        )
+
+    async def on_ignore_all(self, interaction: discord.Interaction) -> None:
+        if await _deny_non_admin(interaction):
+            return
+        if utils.db_conn is None:
+            await interaction.response.send_message(
+                "The settings database is not ready yet.", ephemeral=True
+            )
+            return
+
+        await db.set_settings(utils.db_conn, interaction.guild_id, [], True)
+        utils.excluded.pop(interaction.guild_id, None)
+        utils.muted.add(interaction.guild_id)
+        await interaction.response.edit_message(
+            view=SettingsView(interaction.guild, [], True)
         )
 
     async def on_clear(self, interaction: discord.Interaction) -> None:
@@ -110,8 +151,9 @@ class SettingsView(discord.ui.LayoutView):
             )
             return
 
-        await db.set_excluded(utils.db_conn, interaction.guild_id, [])
+        await db.set_settings(utils.db_conn, interaction.guild_id, [], False)
         utils.excluded.pop(interaction.guild_id, None)
+        utils.muted.discard(interaction.guild_id)
         await interaction.response.edit_message(
             view=SettingsView(interaction.guild, [])
         )

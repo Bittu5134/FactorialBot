@@ -7,6 +7,9 @@ db_conn = None
 # guild_id -> ignored channel ids; an empty set means every channel.
 excluded: dict[int, set[int]] = {}
 
+# guild ids where the bot keeps quiet everywhere.
+muted: set[int] = set()
+
 _last_reply: dict[int, float] = {}
 
 
@@ -46,6 +49,7 @@ __all__ = [
     "db_conn",
     "excluded",
     "invite_url",
+    "muted",
     "reply_allowed",
     "reset_rate_limits",
 ]
