@@ -35,8 +35,7 @@ SUPPORT_CHANCE = float(os.getenv("SUPPORT_CHANCE", "0.1"))
 # View Channels, Send Messages, Read Message History.
 INVITE_PERMISSIONS = 68608
 
-REPLY_COOLDOWN_SECS = float(os.getenv("REPLY_COOLDOWN_SECS", "3"))
-
+REPLY_COOLDOWN_SECS = 1
 MAX_EXTRA_MENTIONS = 2
 
 MAX_TRACKED_CHANNELS = 5

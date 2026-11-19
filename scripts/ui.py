@@ -1,15 +1,8 @@
 import discord
 
 from . import config, db, utils
-from .db import GuildStats
-from .replies import Answer
 
 COLOUR = discord.Colour.from_str("#3B82F6")
-
-
-def _rank_prefix(index: int) -> str:
-    """Medals on the podium, plain rank numbers below it."""
-    return ("🥇", "🥈", "🥉")[index] if index < 3 else f"**#{index + 1}**"
 
 
 def _tracked_text(guild: discord.Guild, tracked: list[int]) -> str:
@@ -18,16 +11,6 @@ def _tracked_text(guild: discord.Guild, tracked: list[int]) -> str:
         return "**Every channel.** Pick any below to narrow it down."
     lines = "\n".join(f"- <#{channel_id}>" for channel_id in live)
     return f"**Watching {len(live)} channel{'s' if len(live) != 1 else ''}:**\n{lines}"
-
-
-def _entries_text(rows: list[tuple[int, int]]) -> str:
-    if not rows:
-        return "Nobody has triggered me yet. Give it time."
-    return "\n".join(
-        f"{_rank_prefix(index)} <@{user_id}> — {count} factorial"
-        f"{'s' if count != 1 else ''}"
-        for index, (user_id, count) in enumerate(rows)
-    )
 
 
 def support_embed() -> discord.Embed:
@@ -44,23 +27,6 @@ def support_embed() -> discord.Embed:
     )
     embed.set_footer(text="FactorialBot • the math is free, the jokes are not")
     return embed
-
-
-class FactReplyView(discord.ui.LayoutView):
-    """The card the bot drops under every detected factorial."""
-
-    def __init__(self, answer: Answer) -> None:
-        super().__init__(timeout=None)
-
-        items: list[discord.ui.Item] = [
-            discord.ui.TextDisplay(f"### {answer.headline}"),
-        ]
-        if answer.detail:
-            items.append(discord.ui.TextDisplay(answer.detail))
-        if answer.footer:
-            items.append(discord.ui.TextDisplay(f"-# {answer.footer}"))
-
-        self.add_item(discord.ui.Container(*items, accent_colour=COLOUR))
 
 
 async def _deny_non_admin(interaction: discord.Interaction) -> bool:
@@ -149,28 +115,7 @@ class SettingsView(discord.ui.LayoutView):
         )
 
 
-class FactStatsView(discord.ui.LayoutView):
-    def __init__(self, stats: GuildStats, rows: list[tuple[int, int]]) -> None:
-        super().__init__(timeout=None)
-        self.add_item(
-            discord.ui.Container(
-                discord.ui.TextDisplay("### Factorial Stats"),
-                discord.ui.TextDisplay(
-                    f"**{stats.total:,}** factorial"
-                    f"{'s' if stats.total != 1 else ''} caught in this server.\n"
-                    f"Biggest so far: **{stats.biggest}**\n"
-                    f"Latest victim: **{stats.last}**"
-                ),
-                discord.ui.Separator(),
-                discord.ui.TextDisplay("**Most factorial-prone members**"),
-                discord.ui.TextDisplay(_entries_text(rows)),
-                discord.ui.TextDisplay("-# /factorial • /factstats"),
-                accent_colour=COLOUR,
-            )
-        )
-
-
-class FactHelpView(discord.ui.LayoutView):
+class HelpView(discord.ui.LayoutView):
     def __init__(self, client_id: int | None = None) -> None:
         super().__init__(timeout=None)
 
@@ -186,7 +131,7 @@ class FactHelpView(discord.ui.LayoutView):
             discord.ui.Separator(),
             discord.ui.TextDisplay(
                 "**/factorial** — demand a specific factorial\n"
-                "**/factstats** — see how often this server has enabled me\n"
+                "**/setting** — pick up to five channels to watch\n"
                 "**Rate limit** — one reply every "
                 f"{config.REPLY_COOLDOWN_SECS:g}s per channel"
             ),
@@ -215,11 +160,4 @@ class FactHelpView(discord.ui.LayoutView):
         self.add_item(discord.ui.Container(*items, accent_colour=COLOUR))
 
 
-__all__ = [
-    "COLOUR",
-    "FactHelpView",
-    "FactReplyView",
-    "FactStatsView",
-    "SettingsView",
-    "support_embed",
-]
+__all__ = ["COLOUR", "HelpView", "SettingsView", "support_embed"]

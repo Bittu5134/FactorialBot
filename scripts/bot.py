@@ -8,13 +8,7 @@ from discord import app_commands
 
 from . import config, db, replies, utils
 from .factorials import Factorial, find_factorals
-from .ui import (
-    FactHelpView,
-    FactReplyView,
-    FactStatsView,
-    SettingsView,
-    support_embed,
-)
+from .ui import HelpView, SettingsView, support_embed
 
 log = logging.getLogger(__name__)
 
@@ -79,42 +73,15 @@ async def factorial_command(interaction: discord.Interaction, number: int) -> No
     else:
         answer = replies.compose(Factorial(number))
 
+    payload: dict = {
+        "content": answer.text,
+        "silent": True,
+        "allowed_mentions": discord.AllowedMentions.none(),
+    }
     if _promo_due():
-        await interaction.response.send_message(
-            content=answer.text,
-            embed=support_embed(),
-            silent=True,
-            allowed_mentions=discord.AllowedMentions.none(),
-        )
-        return
+        payload["embed"] = support_embed()
 
-    await interaction.response.send_message(
-        view=FactReplyView(answer),
-        silent=True,
-        allowed_mentions=discord.AllowedMentions.none(),
-    )
-
-
-@tree.command(
-    name="factstats", description="See how many factorials this server has produced"
-)
-@app_commands.guild_only()
-async def factstats_command(interaction: discord.Interaction) -> None:
-    if utils.db_conn is None:
-        await interaction.response.send_message(
-            "The stats database is not ready yet. Try again in a moment.",
-            ephemeral=True,
-        )
-        return
-
-    await interaction.response.defer()
-    stats = await db.get_guild_stats(utils.db_conn, interaction.guild_id)
-    rows = await db.top(utils.db_conn, interaction.guild_id, 5)
-    await interaction.followup.send(
-        view=FactStatsView(stats, rows),
-        silent=True,
-        allowed_mentions=discord.AllowedMentions.none(),
-    )
+    await interaction.response.send_message(**payload)
 
 
 @tree.command(
@@ -131,10 +98,10 @@ async def setting_command(interaction: discord.Interaction) -> None:
     )
 
 
-@tree.command(name="facthelp", description="What is this bot and why is it here")
-async def facthelp_command(interaction: discord.Interaction) -> None:
+@tree.command(name="help", description="What is this bot and why is it here")
+async def help_command(interaction: discord.Interaction) -> None:
     await interaction.response.send_message(
-        view=FactHelpView(bot.user.id if bot.user else None),
+        view=HelpView(bot.user.id if bot.user else None),
         ephemeral=True,
         allowed_mentions=discord.AllowedMentions.none(),
     )
@@ -260,31 +227,12 @@ async def on_message(message: discord.Message) -> None:
         "mention_author": False,
         "silent": True,
         "allowed_mentions": discord.AllowedMentions.none(),
+        "content": answer.text,
     }
     if _promo_due():
-        # Components-V2 cards cannot carry embeds, so promos go out as text.
-        payload["content"] = answer.text
         payload["embed"] = support_embed()
-    else:
-        payload["view"] = FactReplyView(answer)
 
     try:
         await message.reply(**payload)
     except discord.HTTPException:
         log.warning("Could not reply in channel %s", message.channel.id, exc_info=True)
-        return
-
-    if utils.db_conn is None or message.guild is None:
-        return
-    guild_id = message.guild.id
-    try:
-        await db.record(
-            utils.db_conn,
-            guild_id,
-            message.author.id,
-            found[0].n,
-            found[0].label,
-            discord.utils.utcnow(),
-        )
-    except Exception:
-        log.warning("Could not record a factorial", exc_info=True)
