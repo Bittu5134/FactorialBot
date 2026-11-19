@@ -23,8 +23,40 @@ intents.guild_messages = True
 intents.dm_messages = True
 intents.message_content = True
 
-bot = discord.Client(intents=intents)
+
+class FactorialBot(discord.Client):
+    async def close(self) -> None:
+        await db.close_db(utils.db_conn)
+        utils.db_conn = None
+        await super().close()
+
+
+bot = FactorialBot(intents=intents)
 tree = app_commands.CommandTree(bot)
+
+ERROR_TEXT = "Something broke on my end. Try again in a moment."
+
+
+async def _on_tree_error(
+    interaction: discord.Interaction, error: app_commands.AppCommandError
+) -> None:
+    log.error(
+        "Command %s failed: %s",
+        getattr(interaction.command, "name", "unknown"),
+        error,
+        exc_info=error,
+    )
+    if interaction.response.is_done():
+        send = interaction.followup.send
+    else:
+        send = interaction.response.send_message
+    try:
+        await send(ERROR_TEXT, ephemeral=True)
+    except discord.HTTPException:
+        log.warning("Could not report a command error", exc_info=True)
+
+
+tree.on_error = _on_tree_error
 
 
 def _promo_due() -> bool:
@@ -103,16 +135,24 @@ async def facthelp_command(interaction: discord.Interaction) -> None:
 
 @bot.event
 async def setup_hook():
-    utils.db_conn = await db.open_db(config.DB_PATH)
-    utils.tracked = await db.load_tracked(utils.db_conn)
+    try:
+        utils.db_conn = await db.open_db(config.DB_PATH)
+        utils.tracked = await db.load_tracked(utils.db_conn)
+    except Exception:
+        utils.db_conn = None
+        utils.tracked = {}
+        log.exception("Stats database unavailable; running without persistence")
 
-    if config.GUILD_ID:
-        guild = discord.Object(id=config.GUILD_ID)
-        tree.copy_global_to(guild=guild)
-        synced = await tree.sync(guild=guild)
-    else:
-        synced = await tree.sync()
-    log.info("Synced %d slash command(s).", len(synced))
+    try:
+        if config.GUILD_ID:
+            guild = discord.Object(id=config.GUILD_ID)
+            tree.copy_global_to(guild=guild)
+            synced = await tree.sync(guild=guild)
+        else:
+            synced = await tree.sync()
+        log.info("Synced %d slash command(s).", len(synced))
+    except discord.HTTPException:
+        log.exception("Command sync failed; the previous commands stay registered")
 
 
 @bot.event
