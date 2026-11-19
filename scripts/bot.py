@@ -1,4 +1,6 @@
 import asyncio
+import hashlib
+import json
 import logging
 import random
 
@@ -85,7 +87,7 @@ async def factorial_command(interaction: discord.Interaction, number: int) -> No
 
 
 @tree.command(
-    name="setting", description="Pick up to 5 channels for FactorialBot to track"
+    name="settings", description="Pick up to 5 channels for FactorialBot to track"
 )
 @app_commands.guild_only()
 @app_commands.default_permissions(manage_guild=True)
@@ -110,12 +112,36 @@ async def help_command(interaction: discord.Interaction) -> None:
 SYNC_TIMEOUT_SECS = 30
 
 
+def _commands_fingerprint() -> str:
+    payload = [command.to_dict(tree) for command in tree.get_commands()]
+    raw = json.dumps(payload, sort_keys=True, ensure_ascii=False)
+    return hashlib.sha256(raw.encode()).hexdigest()
+
+
 async def _sync_commands() -> list[app_commands.AppCommand]:
     if config.GUILD_ID:
         guild = discord.Object(id=config.GUILD_ID)
         tree.copy_global_to(guild=guild)
         return await tree.sync(guild=guild)
     return await tree.sync()
+
+
+async def _sync_if_changed() -> int:
+    """Sync only when the command set actually changed."""
+    fingerprint = _commands_fingerprint()
+    key = f"commands:{config.GUILD_ID or 0}"
+
+    stored = (
+        await db.get_meta(utils.db_conn, key) if utils.db_conn is not None else None
+    )
+    if stored == fingerprint:
+        log.info("Slash commands unchanged; sync skipped")
+        return 0
+
+    synced = await _sync_commands()
+    if utils.db_conn is not None:
+        await db.set_meta(utils.db_conn, key, fingerprint)
+    return len(synced)
 
 
 @bot.event
@@ -129,10 +155,14 @@ async def setup_hook():
         log.exception("Stats database unavailable; running without persistence")
 
     try:
-        synced = await asyncio.wait_for(_sync_commands(), SYNC_TIMEOUT_SECS)
-        log.info("Synced %d slash command(s).", len(synced))
-    except Exception:
-        log.exception("Command sync failed; the previous commands stay registered")
+        synced = await asyncio.wait_for(_sync_if_changed(), SYNC_TIMEOUT_SECS)
+        if synced:
+            log.info("Synced %d slash command(s).", synced)
+    except Exception as exc:
+        log.warning(
+            "Command sync skipped (%s); the registered commands are still live", exc
+        )
+        log.debug("Command sync failure", exc_info=True)
 
     log.info(
         "Tracking %d configured guild(s); promo chance %.2f",

@@ -9,6 +9,11 @@ CREATE TABLE IF NOT EXISTS guild_settings (
     guild_id         INTEGER PRIMARY KEY,
     tracked_channels TEXT NOT NULL DEFAULT ''
 );
+
+CREATE TABLE IF NOT EXISTS meta (
+    key   TEXT PRIMARY KEY,
+    value TEXT NOT NULL
+);
 """
 
 
@@ -70,8 +75,26 @@ async def set_tracked(
 
 __all__ = [
     "close_db",
+    "get_meta",
     "get_tracked",
     "load_tracked",
     "open_db",
+    "set_meta",
     "set_tracked",
 ]
+
+
+async def get_meta(db: aiosqlite.Connection, key: str) -> str | None:
+    rows = await db.execute_fetchall("SELECT value FROM meta WHERE key = ?", (key,))
+    return rows[0]["value"] if rows else None
+
+
+async def set_meta(db: aiosqlite.Connection, key: str, value: str) -> None:
+    await db.execute(
+        """
+        INSERT INTO meta (key, value) VALUES (?, ?)
+        ON CONFLICT(key) DO UPDATE SET value = excluded.value
+        """,
+        (key, value),
+    )
+    await db.commit()
