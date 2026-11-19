@@ -80,20 +80,6 @@ async def load_settings(
     return excluded, muted
 
 
-async def get_settings(
-    db: aiosqlite.Connection, guild_id: int
-) -> tuple[bool, set[int]]:
-    rows = await db.execute_fetchall(
-        "SELECT excluded_channels, ignore_all FROM guild_settings WHERE guild_id = ?",
-        (guild_id,),
-    )
-    if not rows:
-        return False, set()
-    row = rows[0]
-    ids = {int(part) for part in row["excluded_channels"].split(",") if part}
-    return bool(row["ignore_all"]), ids
-
-
 async def set_settings(
     db: aiosqlite.Connection,
     guild_id: int,
@@ -129,14 +115,3 @@ async def set_meta(db: aiosqlite.Connection, key: str, value: str) -> None:
         (key, value),
     )
     await db.commit()
-
-
-__all__ = [
-    "close_db",
-    "get_meta",
-    "get_settings",
-    "load_settings",
-    "open_db",
-    "set_meta",
-    "set_settings",
-]

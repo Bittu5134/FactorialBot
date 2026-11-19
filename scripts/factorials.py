@@ -106,17 +106,3 @@ def scientific_text(n: int, double: bool = False) -> str:
     mantissa, exponent = scientific(n, double)
     power = f"{exponent:,}" if exponent >= 10_000 else str(exponent)
     return f"{mantissa:.{config.MANTISSA_DIGITS}f} × 10^{power}"
-
-
-__all__ = [
-    "Factorial",
-    "digits",
-    "double_exact",
-    "exact",
-    "find_factorals",
-    "log10_double_factorial",
-    "log10_factorial",
-    "scientific",
-    "scientific_text",
-    "trailing_zeros",
-]

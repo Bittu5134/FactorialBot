@@ -34,14 +34,19 @@ def support_embed() -> discord.Embed:
     return embed
 
 
-async def _deny_non_admin(interaction: discord.Interaction) -> bool:
-    """Returns True and replies if the user lacks Manage Server."""
+async def _ready(interaction: discord.Interaction) -> bool:
+    """False when the clicker is not an admin or the database is missing."""
     perms = getattr(interaction.user, "guild_permissions", None)
-    if perms and perms.manage_guild:
+    if not (perms and perms.manage_guild):
+        await interaction.response.send_message(
+            "You need **Manage Server** to change this.", ephemeral=True
+        )
         return False
-    await interaction.response.send_message(
-        "You need **Manage Server** to change this.", ephemeral=True
-    )
+    if utils.db_conn is None:
+        await interaction.response.send_message(
+            "The settings database is not ready yet.", ephemeral=True
+        )
+        return False
     return True
 
 
@@ -55,9 +60,6 @@ class SettingsView(discord.ui.LayoutView):
         ignore_all: bool = False,
     ) -> None:
         super().__init__(timeout=None)
-
-        self.excluded_ids = excluded
-        self.ignore_all = ignore_all
 
         self.select = discord.ui.ChannelSelect(
             channel_types=[discord.ChannelType.text],
@@ -110,12 +112,7 @@ class SettingsView(discord.ui.LayoutView):
         )
 
     async def on_channels(self, interaction: discord.Interaction) -> None:
-        if await _deny_non_admin(interaction):
-            return
-        if utils.db_conn is None:
-            await interaction.response.send_message(
-                "The settings database is not ready yet.", ephemeral=True
-            )
+        if not await _ready(interaction):
             return
 
         ids = [channel.id for channel in self.select.values]
@@ -127,12 +124,7 @@ class SettingsView(discord.ui.LayoutView):
         )
 
     async def on_ignore_all(self, interaction: discord.Interaction) -> None:
-        if await _deny_non_admin(interaction):
-            return
-        if utils.db_conn is None:
-            await interaction.response.send_message(
-                "The settings database is not ready yet.", ephemeral=True
-            )
+        if not await _ready(interaction):
             return
 
         await db.set_settings(utils.db_conn, interaction.guild_id, [], True)
@@ -143,12 +135,7 @@ class SettingsView(discord.ui.LayoutView):
         )
 
     async def on_clear(self, interaction: discord.Interaction) -> None:
-        if await _deny_non_admin(interaction):
-            return
-        if utils.db_conn is None:
-            await interaction.response.send_message(
-                "The settings database is not ready yet.", ephemeral=True
-            )
+        if not await _ready(interaction):
             return
 
         await db.set_settings(utils.db_conn, interaction.guild_id, [], False)
@@ -202,6 +189,3 @@ class HelpView(discord.ui.LayoutView):
         items.append(discord.ui.ActionRow(*links))
 
         self.add_item(discord.ui.Container(*items, accent_colour=COLOUR))
-
-
-__all__ = ["COLOUR", "HelpView", "SettingsView", "support_embed"]

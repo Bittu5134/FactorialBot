@@ -233,10 +233,11 @@ def refuse_negative(n: int) -> Answer:
     )
 
 
-def too_many(found: list[Factorial], limit: int = config.MAX_EXTRA_MENTIONS) -> str:
+def too_many(found: list[Factorial]) -> str:
     """A dismissive footnote for messages stuffed with factorials."""
-    labels = ", ".join(f.label for f in found[:limit])
-    hidden = len(found) - limit
+    keep = found[: config.MAX_EXTRA_MENTIONS]
+    labels = ", ".join(f.label for f in keep)
+    hidden = len(found) - len(keep)
     if hidden > 0:
         labels += f" and {hidden} more"
     return f"-# Also spotted {labels}. One factorial per message, please."
@@ -323,6 +324,3 @@ def _big_answer(f: Factorial, rng: random.Random) -> str:
     if rng.random() < FLAVOUR_CHANCE:
         return f"{tail} {rng.choice(FLAVOUR)}"
     return tail
-
-
-__all__ = ["Answer", "compose", "refuse", "refuse_negative", "too_many"]

@@ -33,23 +33,9 @@ def _prune(now: float) -> None:
             del _last_reply[channel_id]
 
 
-def reset_rate_limits() -> None:
-    _last_reply.clear()
-
-
 def invite_url(client_id: int) -> str:
     return (
         f"https://discord.com/oauth2/authorize?client_id={client_id}"
         f"&permissions={config.INVITE_PERMISSIONS}"
         "&integration_type=0&scope=bot+applications.commands"
     )
-
-
-__all__ = [
-    "db_conn",
-    "excluded",
-    "invite_url",
-    "muted",
-    "reply_allowed",
-    "reset_rate_limits",
-]
