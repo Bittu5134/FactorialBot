@@ -13,31 +13,41 @@ logging.basicConfig(
     format="%(asctime)s %(levelname)-8s %(name)s: %(message)s",
 )
 
+log = logging.getLogger("factorialbot")
 
-def _install_signals(loop: asyncio.AbstractEventLoop) -> None:
-    """Close the bot cleanly on Ctrl+C and on the SIGTERM a container sends."""
+CLOSE_TIMEOUT_SECS = 10
 
-    def shutdown() -> None:
-        loop.create_task(bot.close())
 
-    for sig in (signal.SIGINT, signal.SIGTERM):
-        try:
-            loop.add_signal_handler(sig, shutdown)
-        except NotImplementedError:
-            pass
+async def _shutdown() -> None:
+    try:
+        await asyncio.wait_for(bot.close(), CLOSE_TIMEOUT_SECS)
+    except Exception:
+        log.warning("Clean shutdown timed out", exc_info=True)
 
 
 def _run() -> None:
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
-    _install_signals(loop)
+    task = loop.create_task(bot.start(TOKEN), name="factorialbot:start")
+
+    def on_signal() -> None:
+        log.info("Shutting down")
+        task.cancel()
+
+    for sig in (signal.SIGINT, signal.SIGTERM):
+        try:
+            loop.add_signal_handler(sig, on_signal)
+        except NotImplementedError:
+            pass
 
     try:
-        loop.run_until_complete(bot.start(TOKEN))
-    except KeyboardInterrupt:
+        loop.run_until_complete(task)
+    except asyncio.CancelledError:
         pass
+
+    try:
+        loop.run_until_complete(_shutdown())
     finally:
-        loop.run_until_complete(bot.close())
         loop.run_until_complete(loop.shutdown_asyncgens())
         loop.close()
 

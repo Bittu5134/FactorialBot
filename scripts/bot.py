@@ -1,3 +1,4 @@
+import asyncio
 import logging
 import random
 
@@ -139,6 +140,17 @@ async def facthelp_command(interaction: discord.Interaction) -> None:
     )
 
 
+SYNC_TIMEOUT_SECS = 30
+
+
+async def _sync_commands() -> list[app_commands.AppCommand]:
+    if config.GUILD_ID:
+        guild = discord.Object(id=config.GUILD_ID)
+        tree.copy_global_to(guild=guild)
+        return await tree.sync(guild=guild)
+    return await tree.sync()
+
+
 @bot.event
 async def setup_hook():
     try:
@@ -150,12 +162,7 @@ async def setup_hook():
         log.exception("Stats database unavailable; running without persistence")
 
     try:
-        if config.GUILD_ID:
-            guild = discord.Object(id=config.GUILD_ID)
-            tree.copy_global_to(guild=guild)
-            synced = await tree.sync(guild=guild)
-        else:
-            synced = await tree.sync()
+        synced = await asyncio.wait_for(_sync_commands(), SYNC_TIMEOUT_SECS)
         log.info("Synced %d slash command(s).", len(synced))
     except Exception:
         log.exception("Command sync failed; the previous commands stay registered")
@@ -179,6 +186,8 @@ async def on_resumed() -> None:
 
 @bot.event
 async def on_disconnect() -> None:
+    if bot.is_closed():
+        return
     log.warning("Disconnected from Discord, reconnecting")
 
 
