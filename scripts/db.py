@@ -6,9 +6,8 @@ log = logging.getLogger(__name__)
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS guild_settings (
-    guild_id          INTEGER PRIMARY KEY,
-    excluded_channels TEXT NOT NULL DEFAULT '',
-    ignore_all        INTEGER NOT NULL DEFAULT 0
+    guild_id        INTEGER PRIMARY KEY,
+    allowed_channels TEXT NOT NULL DEFAULT ''
 );
 
 CREATE TABLE IF NOT EXISTS meta (
@@ -28,18 +27,22 @@ async def _migrate(db: aiosqlite.Connection) -> None:
     if "tracked_channels" in columns:
         await db.execute(
             "ALTER TABLE guild_settings "
-            "RENAME COLUMN tracked_channels TO excluded_channels"
+            "RENAME COLUMN tracked_channels TO allowed_channels"
         )
-        columns.discard("tracked_channels")
-        columns.add("excluded_channels")
         log.info("Migrated guild_settings.tracked_channels")
 
-    if "ignore_all" not in columns:
+    if "excluded_channels" in columns:
+        # The old column stored channels to ignore; a whitelist means the opposite.
         await db.execute(
             "ALTER TABLE guild_settings "
-            "ADD COLUMN ignore_all INTEGER NOT NULL DEFAULT 0"
+            "RENAME COLUMN excluded_channels TO allowed_channels"
         )
-        log.info("Added guild_settings.ignore_all")
+        await db.execute("UPDATE guild_settings SET allowed_channels = ''")
+        log.info("Reset the old channel blacklist; every channel is allowed again")
+
+    if "ignore_all" in columns:
+        await db.execute("ALTER TABLE guild_settings DROP COLUMN ignore_all")
+        log.info("Dropped guild_settings.ignore_all")
 
     await db.commit()
 
@@ -62,41 +65,32 @@ async def close_db(db: aiosqlite.Connection | None) -> None:
         await db.close()
 
 
-async def load_settings(
-    db: aiosqlite.Connection,
-) -> tuple[dict[int, set[int]], set[int]]:
-    """Every guild's ignored channels and the guilds ignoring everything."""
+async def load_allowed(db: aiosqlite.Connection) -> dict[int, set[int]]:
+    """Every guild's whitelisted channel ids, for the in-memory cache."""
     rows = await db.execute_fetchall(
-        "SELECT guild_id, excluded_channels, ignore_all FROM guild_settings"
+        "SELECT guild_id, allowed_channels FROM guild_settings"
     )
-    excluded: dict[int, set[int]] = {}
-    muted: set[int] = set()
+    allowed: dict[int, set[int]] = {}
     for row in rows:
-        ids = {int(part) for part in row["excluded_channels"].split(",") if part}
+        ids = {int(part) for part in row["allowed_channels"].split(",") if part}
         if ids:
-            excluded[row["guild_id"]] = ids
-        if row["ignore_all"]:
-            muted.add(row["guild_id"])
-    return excluded, muted
+            allowed[row["guild_id"]] = ids
+    return allowed
 
 
-async def set_settings(
-    db: aiosqlite.Connection,
-    guild_id: int,
-    channel_ids: list[int],
-    ignore_all: bool = False,
+async def set_allowed(
+    db: aiosqlite.Connection, guild_id: int, channel_ids: list[int]
 ) -> None:
-    """An empty list with ignore_all off means every channel is answered in."""
+    """An empty list means every channel in the guild is allowed."""
     packed = ",".join(str(channel_id) for channel_id in channel_ids)
     await db.execute(
         """
-        INSERT INTO guild_settings (guild_id, excluded_channels, ignore_all)
-        VALUES (?, ?, ?)
+        INSERT INTO guild_settings (guild_id, allowed_channels)
+        VALUES (?, ?)
         ON CONFLICT(guild_id) DO UPDATE SET
-            excluded_channels = excluded.excluded_channels,
-            ignore_all        = excluded.ignore_all
+            allowed_channels = excluded.allowed_channels
         """,
-        (guild_id, packed, int(ignore_all)),
+        (guild_id, packed),
     )
     await db.commit()
 

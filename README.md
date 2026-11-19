@@ -13,7 +13,8 @@
 
 ## How It Works
 
-- The bot reads every message it can see, in every channel.
+- The bot reads every message it can see, in every channel, unless you
+  whitelist a few with `/setting`.
 - Anything shaped like `10!` or `9!!` gets a reply, in plain text, with attitude.
 - Small factorials are printed in full: `10! = 3,628,800`.
 - Big ones get the digit count, the trailing zeros and a scientific shrug,
@@ -46,7 +47,7 @@ cp .env.example .env
 python main.py
 ```
 
-Then run `/setting` in your server if you want any channel left alone.
+Then run `/setting` in your server if you only want it answering in a few channels.
 
 > [!IMPORTANT]
 > The bot needs the **Message Content** privileged intent. Enable it in the
@@ -71,8 +72,8 @@ Then run `/setting` in your server if you want any channel left alone.
 ## Commands
 
 - `/factorial` — demand a specific factorial, with attitude.
-- `/setting` *(Manage Server)* — blacklist channels the bot should ignore, or ignore
-  the whole server. No limit.
+- `/setting` *(Manage Server)* — whitelist the channels the bot may answer in.
+  Select all / clear, or pick them by hand. Nothing picked means every channel.
 - `/help` — what the bot does, plus invite and support buttons.
 
 ## Screenshots

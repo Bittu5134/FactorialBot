@@ -4,11 +4,8 @@ from . import config
 
 db_conn = None
 
-# guild_id -> ignored channel ids; an empty set means every channel.
-excluded: dict[int, set[int]] = {}
-
-# guild ids where the bot keeps quiet everywhere.
-muted: set[int] = set()
+# guild_id -> whitelisted channel ids; an empty set means every channel.
+allowed: dict[int, set[int]] = {}
 
 _last_reply: dict[int, float] = {}
 

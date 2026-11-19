@@ -86,14 +86,13 @@ async def factorial_command(interaction: discord.Interaction, number: int) -> No
     await interaction.response.send_message(**payload)
 
 
-@tree.command(name="setting", description="Blacklist channels the bot should ignore")
+@tree.command(name="setting", description="Pick the channels the bot may answer in")
 @app_commands.guild_only()
 @app_commands.default_permissions(manage_guild=True)
 async def setting_command(interaction: discord.Interaction) -> None:
-    excluded = sorted(utils.excluded.get(interaction.guild_id, set()))
-    ignore_all = interaction.guild_id in utils.muted
+    allowed = sorted(utils.allowed.get(interaction.guild_id, set()))
     await interaction.response.send_message(
-        view=SettingsView(interaction.guild, excluded, ignore_all),
+        view=SettingsView(interaction.guild, allowed),
         ephemeral=True,
         allowed_mentions=discord.AllowedMentions.none(),
     )
@@ -147,11 +146,10 @@ async def _sync_if_changed() -> int:
 async def setup_hook():
     try:
         utils.db_conn = await db.open_db(config.DB_PATH)
-        utils.excluded, utils.muted = await db.load_settings(utils.db_conn)
+        utils.allowed = await db.load_allowed(utils.db_conn)
     except Exception:
         utils.db_conn = None
-        utils.excluded = {}
-        utils.muted = set()
+        utils.allowed = {}
         log.exception("Settings database unavailable; running with defaults")
 
     try:
@@ -165,9 +163,8 @@ async def setup_hook():
         log.debug("Command sync failure", exc_info=True)
 
     log.info(
-        "%d guild(s) have ignored channels, %d ignore everything; promo %.2f",
-        len(utils.excluded),
-        len(utils.muted),
+        "%d guild(s) have a channel whitelist; promo %.2f",
+        len(utils.allowed),
         config.SUPPORT_CHANCE,
     )
 
@@ -233,12 +230,10 @@ async def on_message(message: discord.Message) -> None:
         return
 
     if message.guild:
-        if message.guild.id in utils.muted:
-            return
-        ignored = utils.excluded.get(message.guild.id)
-        if ignored:
+        allowed = utils.allowed.get(message.guild.id)
+        if allowed:
             parent_id = getattr(message.channel, "parent_id", None)
-            if message.channel.id in ignored or parent_id in ignored:
+            if message.channel.id not in allowed and parent_id not in allowed:
                 return
         me = message.guild.me
         if me and not message.channel.permissions_for(me).send_messages:
