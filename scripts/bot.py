@@ -209,6 +209,9 @@ async def on_message(message: discord.Message) -> None:
             parent_id = getattr(message.channel, "parent_id", None)
             if message.channel.id not in watched and parent_id not in watched:
                 return
+        me = message.guild.me
+        if me and not message.channel.permissions_for(me).send_messages:
+            return
 
     found = find_factorals(message.content or "")
     if not found:
@@ -240,9 +243,9 @@ async def on_message(message: discord.Message) -> None:
         log.warning("Could not reply in channel %s", message.channel.id, exc_info=True)
         return
 
-    if utils.db_conn is None:
+    if utils.db_conn is None or message.guild is None:
         return
-    guild_id = message.guild.id if message.guild else 0
+    guild_id = message.guild.id
     try:
         await db.record(
             utils.db_conn,
